@@ -3,32 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lumeire X - Interface Intuitive</title>
+    <title>Lumeire X - Smart Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
     <style>
         body { background: #0f172a; color: white; font-family: 'Inter', sans-serif; }
-        
-        .glass { 
-            background: rgba(30, 41, 59, 0.7); 
-            backdrop-filter: blur(12px); 
-            border-radius: 28px; 
-            border: 1px solid rgba(255,255,255,0.05); 
-            transition: all 0.4s ease;
-        }
-
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border-radius: 28px; border: 1px solid rgba(255,255,255,0.05); transition: all 0.4s ease; }
         .is-on { border-color: rgba(56, 189, 248, 0.5); box-shadow: 0 0 25px rgba(56, 189, 248, 0.15); }
-
-        /* État HORS-LIGNE : Flou et sombre */
-        .card-offline {
-            opacity: 0.5;
-            filter: grayscale(0.9) blur(3px);
-            background: rgba(15, 23, 42, 0.8);
-            pointer-events: none;
-        }
-
+        .card-offline { opacity: 0.5; filter: grayscale(0.9) blur(3px); background: rgba(15, 23, 42, 0.8); pointer-events: none; }
         .label-text { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; }
-        
         input[type="range"] { -webkit-appearance: none; height: 10px; border-radius: 5px; background: #334155; outline: none; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: white; border: 4px solid #38bdf8; cursor: pointer; }
     </style>
@@ -38,25 +21,60 @@
     <header class="max-w-md mx-auto py-8 flex justify-between items-center">
         <div>
             <h1 class="text-4xl font-black italic tracking-tighter bg-gradient-to-br from-sky-400 to-blue-600 bg-clip-text text-transparent">LUMEIRE X</h1>
-            <p id="global-status" class="label-text mt-1 text-sky-500 italic">Liaison Quantum Active</p>
+            <p id="global-status" class="label-text mt-1 text-sky-500 italic">Interface de Contrôle</p>
         </div>
         <div class="flex gap-2">
-            <button onclick="masterOff(this)" class="p-3 glass border border-red-500/20 text-red-500 active:scale-90 transition shadow-lg shadow-red-900/20">
+            <button onclick="masterOff(this)" class="p-3 glass border border-red-500/20 text-red-500 active:scale-90 transition shadow-lg">
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             </button>
-            <button onclick="loadDevices()" class="p-3 glass border border-white/10 text-sky-400 active:rotate-180 transition-all duration-500 shadow-lg shadow-black/20">
+            <button onclick="loadDevices()" class="p-3 glass border border-white/10 text-sky-400 active:rotate-180 transition-all duration-500 shadow-lg">
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
             </button>
         </div>
     </header>
 
+    <section id="config-panel" class="max-w-md mx-auto mb-8 hidden">
+        <div class="glass p-6 border-sky-500/30 border">
+            <h2 class="label-text mb-4 text-sky-400 text-center text-xs">Première Connexion : Paramètres Cloud Tuya</h2>
+            <div class="space-y-3">
+                <input id="tuya_id" type="text" placeholder="Access ID" class="w-full p-4 bg-slate-900/50 rounded-2xl outline-none text-sm border border-slate-700 focus:border-sky-500 transition-colors">
+                <input id="tuya_secret" type="password" placeholder="Access Secret" class="w-full p-4 bg-slate-900/50 rounded-2xl outline-none text-sm border border-slate-700 focus:border-sky-500 transition-colors">
+                <button onclick="save()" class="w-full py-4 bg-sky-600 hover:bg-sky-500 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all">
+                    💾 Enregistrer & Lancer le Scan
+                </button>
+            </div>
+        </div>
+    </section>
+
     <main id="container" class="max-w-md mx-auto space-y-8"></main>
+
+    <footer class="max-w-md mx-auto mt-12 text-center">
+        <button onclick="document.getElementById('config-panel').classList.toggle('hidden')" class="label-text opacity-30 hover:opacity-100 transition">Modifier les clés API</button>
+    </footer>
 
     <script>
         let devicesCache = [];
         let pickers = {};
 
-        window.onload = () => { if(localStorage.getItem('tuya_id')) loadDevices(); };
+        window.onload = () => {
+            const id = localStorage.getItem('tuya_id');
+            const secret = localStorage.getItem('tuya_secret');
+            
+            if(!id || !secret) {
+                document.getElementById('config-panel').classList.remove('hidden');
+            } else {
+                document.getElementById('tuya_id').value = id;
+                document.getElementById('tuya_secret').value = secret;
+                loadDevices();
+            }
+        };
+
+        function save() {
+            localStorage.setItem('tuya_id', document.getElementById('tuya_id').value);
+            localStorage.setItem('tuya_secret', document.getElementById('tuya_secret').value);
+            document.getElementById('config-panel').classList.add('hidden');
+            loadDevices();
+        }
 
         async function api(body) {
             const res = await fetch('/api/control', {
@@ -106,7 +124,7 @@
                                 ${d.online ? '● Connecté' : '○ Hors-ligne'}
                             </span>
                             <span id="badge-status-${d.id}" class="text-[9px] font-black px-2 py-1 rounded bg-white/5 uppercase text-slate-400">
-                                Synchronisation...
+                                ...
                             </span>
                         </div>
                     </div>
@@ -136,13 +154,13 @@
                 </div>
 
                 <div class="mt-8 flex gap-3">
-                    <button onclick="resetWhite('${d.id}')" class="flex-1 py-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col items-center hover:bg-white hover:text-black transition">
+                    <button onclick="resetWhite('${d.id}')" class="flex-1 py-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col items-center hover:bg-white/10 transition">
                         <span class="text-lg">⚪</span>
-                        <span class="label-text mt-1">Éclairage Blanc</span>
+                        <span class="label-text mt-1">Mode Blanc</span>
                     </button>
                     <button onclick="toggleColor('${d.id}')" class="flex-1 py-4 bg-sky-500/5 rounded-2xl border border-sky-500/10 flex flex-col items-center hover:bg-sky-500/20 transition">
                         <span class="text-lg">🌈</span>
-                        <span class="label-text mt-1 text-sky-400">Mode Couleur</span>
+                        <span class="label-text mt-1 text-sky-400">Couleurs</span>
                     </button>
                 </div>
             </div>`;
@@ -151,15 +169,14 @@
         function updateVisual(id, isOn) {
             const card = document.getElementById(`card-${id}`);
             const badge = document.getElementById(`badge-status-${id}`);
-            
             if(card && isOn) {
                 card.classList.add('is-on');
                 badge.innerText = "● Allumé";
-                badge.classList.replace('text-slate-400', 'text-sky-400');
+                badge.className = badge.className.replace('text-slate-400', 'text-sky-400');
             } else if(card) {
                 card.classList.remove('is-on');
                 badge.innerText = "○ Éteint";
-                badge.classList.replace('text-sky-400', 'text-slate-400');
+                badge.className = badge.className.replace('text-sky-400', 'text-slate-400');
             }
         }
 
