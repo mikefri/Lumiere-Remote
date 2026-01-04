@@ -3,192 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lumeire - Smart Control</title>
+    <title>Lumeire - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { 
-            background-color: #F8FAFC; 
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            color: #1E293B;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            border-radius: 32px;
-            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04);
-        }
-        .slider-custom {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 12px;
-            border-radius: 10px;
-            background: #E2E8F0;
-            outline: none;
-        }
-        .slider-custom::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: #FFFFFF;
-            border: 4px solid #3B82F6;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-        .mode-btn {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .mode-btn:active { transform: scale(0.92); }
+        body { background-color: #F1F5F9; font-family: sans-serif; }
+        .glass { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-radius: 30px; border: 1px solid white; }
+        .slider { -webkit-appearance: none; width: 100%; height: 10px; border-radius: 10px; background: #E2E8F0; outline: none; }
+        .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: white; border: 3px solid #3B82F6; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
         .bg-temp { background: linear-gradient(to right, #FF9500, #FFFFFF, #007AFF); }
-        .bg-bright { background: linear-gradient(to right, #475569, #FDE047); }
     </style>
 </head>
-<body class="pb-10">
-
+<body class="pb-20">
     <div class="max-w-md mx-auto px-6">
-        <header class="py-8 flex justify-between items-center">
+        <header class="py-10 flex justify-between items-center">
             <div>
-                <h1 class="text-3xl font-extrabold tracking-tight">Lumeire</h1>
-                <p id="status-count" class="text-sm text-slate-400 font-medium italic">Scanner en cours...</p>
+                <h1 class="text-3xl font-black text-slate-900">Lumeire</h1>
+                <p id="status" class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Initialisation...</p>
             </div>
-            <button onclick="loadDevices()" class="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 active:rotate-180 transition-all duration-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-            </button>
+            <div class="flex gap-2">
+                <button onclick="allOff()" class="p-3 bg-red-100 text-red-600 rounded-2xl active:scale-90 transition">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </button>
+                <button onclick="loadDevices()" class="p-3 bg-white text-slate-600 rounded-2xl shadow-sm active:rotate-180 transition-all duration-500">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </button>
+            </div>
         </header>
 
-        <details class="mb-8 overflow-hidden transition-all duration-300">
-            <summary class="text-xs font-bold text-slate-400 cursor-pointer uppercase tracking-widest text-center list-none mb-4">Paramètres API</summary>
-            <div class="glass-card p-6 space-y-4">
-                <input type="text" id="accessId" placeholder="Access ID" class="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm focus:ring-2 focus:ring-blue-500 transition">
-                <input type="password" id="accessSecret" placeholder="Access Secret" class="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm focus:ring-2 focus:ring-blue-500 transition">
-                <button onclick="saveKeys()" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-blue-200">Enregistrer</button>
+        <details class="mb-8"><summary class="text-center text-[10px] text-slate-400 cursor-pointer mb-2">CLÉS API</summary>
+            <div class="bg-white p-4 rounded-2xl space-y-2">
+                <input id="accId" type="text" placeholder="Access ID" class="w-full p-2 border rounded-lg text-sm">
+                <input id="accSec" type="password" placeholder="Access Secret" class="w-full p-2 border rounded-lg text-sm">
+                <button onclick="save()" class="w-full bg-slate-800 text-white py-2 rounded-xl text-sm">Enregistrer</button>
             </div>
         </details>
 
-        <div id="device-list" class="space-y-8">
-            <div class="glass-card p-8 animate-pulse space-y-4">
-                <div class="h-6 bg-slate-100 rounded w-1/2"></div>
-                <div class="h-32 bg-slate-50 rounded-3xl w-full"></div>
-            </div>
-        </div>
+        <div id="device-list" class="space-y-6"></div>
     </div>
 
     <script>
+        let devicesCache = [];
+
         window.onload = () => {
-            document.getElementById('accessId').value = localStorage.getItem('tuya_access_id') || '';
-            document.getElementById('accessSecret').value = localStorage.getItem('tuya_access_secret') || '';
-            if(localStorage.getItem('tuya_access_id')) loadDevices();
+            document.getElementById('accId').value = localStorage.getItem('tuya_id') || '';
+            document.getElementById('accSec').value = localStorage.getItem('tuya_secret') || '';
+            if(localStorage.getItem('tuya_id')) loadDevices();
         };
 
-        function saveKeys() {
-            localStorage.setItem('tuya_access_id', document.getElementById('accessId').value);
-            localStorage.setItem('tuya_access_secret', document.getElementById('accessSecret').value);
+        function save() {
+            localStorage.setItem('tuya_id', document.getElementById('accId').value);
+            localStorage.setItem('tuya_secret', document.getElementById('accSec').value);
             loadDevices();
         }
 
-        async function apiCall(body) {
+        async function api(body) {
             const res = await fetch('/api/control', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    ...body, 
-                    accessId: localStorage.getItem('tuya_access_id'), 
-                    accessSecret: localStorage.getItem('tuya_access_secret') 
-                })
+                body: JSON.stringify({ ...body, accessId: localStorage.getItem('tuya_id'), accessSecret: localStorage.getItem('tuya_secret') })
             });
             return res.json();
         }
 
         async function loadDevices() {
             const container = document.getElementById('device-list');
-            const status = document.getElementById('status-count');
-            
-            try {
-                const data = await apiCall({ action: 'listDevices' });
-                if (data.success) {
-                    const devices = data.result?.devices || data.result || [];
-                    status.innerText = `${devices.length} appareil(s) en ligne`;
-                    container.innerHTML = devices.map(dev => renderDevice(dev)).join('');
-                }
-            } catch (e) {
-                status.innerText = "Erreur de connexion";
+            const data = await api({ action: 'listDevices' });
+            if (data.success) {
+                devicesCache = data.result;
+                document.getElementById('status').innerText = `${devicesCache.length} lampes détectées`;
+                container.innerHTML = devicesCache.map(dev => render(dev)).join('');
+                devicesCache.forEach(dev => sync(dev.id));
             }
         }
 
-        function renderDevice(dev) {
+        async function sync(deviceId) {
+            const data = await api({ action: 'getStatus', deviceId });
+            if (data.success) {
+                const s = data.result;
+                const isOn = s.find(x => x.code === 'switch_led')?.value;
+                const br = s.find(x => x.code === 'bright_value_v2')?.value;
+                const tp = s.find(x => x.code === 'temp_value_v2')?.value;
+
+                if (document.getElementById(`sw-${deviceId}`)) document.getElementById(`sw-${deviceId}`).checked = isOn;
+                if (document.getElementById(`br-${deviceId}`)) document.getElementById(`br-${deviceId}`).value = br;
+                if (document.getElementById(`tp-${deviceId}`)) document.getElementById(`tp-${deviceId}`).value = tp;
+                updateUI(deviceId, isOn);
+            }
+        }
+
+        function render(dev) {
             return `
-                <div class="glass-card p-8 relative overflow-hidden">
-                    <div class="flex justify-between items-start mb-8">
-                        <div class="flex items-center gap-4">
-                            <div class="p-4 bg-yellow-50 rounded-2xl text-yellow-500" id="icon-${dev.id}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.477.859h4z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h2 class="font-extrabold text-xl text-slate-800">${dev.name}</h2>
-                                <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">${dev.category}</p>
-                            </div>
+                <div class="glass p-8 shadow-xl shadow-slate-200/50">
+                    <div class="flex justify-between items-center mb-8">
+                        <div id="ico-${dev.id}" class="p-4 bg-slate-100 rounded-2xl text-slate-300">
+                            <svg class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.477.859h4z"/></svg>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" onchange="toggleLight('${dev.id}', this.checked)" class="sr-only peer">
-                            <div class="w-16 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-500 after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all"></div>
+                            <input type="checkbox" id="sw-${dev.id}" onchange="toggle('${dev.id}', this.checked)" class="sr-only peer">
+                            <div class="w-16 h-8 bg-slate-200 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:after:translate-x-8"></div>
                         </label>
                     </div>
-
-                    <div class="space-y-8">
-                        <div class="space-y-3">
-                            <div class="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-tight">
-                                <span>Luminosité</span>
-                                <span id="val-b-${dev.id}">100%</span>
-                            </div>
-                            <input type="range" min="10" max="1000" class="slider-custom bg-bright" 
-                                oninput="updateLabel('val-b-${dev.id}', this.value, 10)"
-                                onchange="send('${dev.id}', 'bright_value_v2', parseInt(this.value))">
-                        </div>
-
-                        <div class="space-y-3">
-                            <div class="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-tight">
-                                <span>Température</span>
-                                <span id="val-t-${dev.id}">50%</span>
-                            </div>
-                            <input type="range" min="0" max="1000" class="slider-custom bg-temp" 
-                                oninput="updateLabel('val-t-${dev.id}', this.value, 10)"
-                                onchange="send('${dev.id}', 'temp_value_v2', parseInt(this.value))">
-                        </div>
+                    <h3 class="font-bold text-lg mb-6">${dev.name}</h3>
+                    <div class="space-y-6">
+                        <input type="range" id="br-${dev.id}" min="10" max="1000" class="slider" onchange="cmd('${dev.id}','bright_value_v2',parseInt(this.value))">
+                        <input type="range" id="tp-${dev.id}" min="0" max="1000" class="slider bg-temp" onchange="cmd('${dev.id}','temp_value_v2',parseInt(this.value))">
                     </div>
-
-                    <div class="grid grid-cols-4 gap-3 mt-10">
-                        ${['white', 'colour', 'scene', 'music'].map(mode => `
-                            <button onclick="send('${dev.id}', 'work_mode', '${mode}')" 
-                                class="mode-btn py-3 rounded-2xl bg-slate-50 text-[10px] font-black uppercase text-slate-400 hover:bg-blue-50 hover:text-blue-600">
-                                ${mode}
-                            </button>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
+                </div>`;
         }
 
-        function updateLabel(id, val, scale) {
-            document.getElementById(id).innerText = Math.round(val / scale) + '%';
+        function updateUI(id, state) {
+            const ico = document.getElementById(`ico-${id}`);
+            if (ico) {
+                ico.className = state ? "p-4 bg-yellow-100 rounded-2xl text-yellow-500" : "p-4 bg-slate-100 rounded-2xl text-slate-300";
+            }
         }
 
-        async function toggleLight(id, state) {
-            const icon = document.getElementById('icon-' + id);
-            icon.classList.toggle('text-yellow-500', state);
-            icon.classList.toggle('text-slate-300', !state);
-            send(id, 'switch_led', state);
-        }
-
-        async function send(deviceId, code, value) {
-            await apiCall({ action: 'send', deviceId, code, value });
-        }
+        async function toggle(id, state) { updateUI(id, state); await cmd(id, 'switch_led', state); }
+        async function cmd(deviceId, code, value) { await api({ action: 'send', deviceId, code, value }); }
+        async function allOff() { for (const d of devicesCache) { toggle(d.id, false); if(document.getElementById(`sw-${d.id}`)) document.getElementById(`sw-${d.id}`).checked = false; } }
     </script>
 </body>
 </html>
