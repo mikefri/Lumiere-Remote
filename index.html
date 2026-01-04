@@ -3,35 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lumeire - Pilotage</title>
+    <title>Lumeire - Smart Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        .device-card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border: 1px solid #e2e8f0; }
-        input[type="range"] { height: 8px; border-radius: 5px; background: #edf2f7; appearance: none; width: 100%; }
+        body { 
+            background-color: #F8FAFC; 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #1E293B;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 32px;
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04);
+        }
+        .slider-custom {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 12px;
+            border-radius: 10px;
+            background: #E2E8F0;
+            outline: none;
+        }
+        .slider-custom::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #FFFFFF;
+            border: 4px solid #3B82F6;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .mode-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .mode-btn:active { transform: scale(0.92); }
+        .bg-temp { background: linear-gradient(to right, #FF9500, #FFFFFF, #007AFF); }
+        .bg-bright { background: linear-gradient(to right, #475569, #FDE047); }
     </style>
 </head>
-<body class="bg-slate-50 p-4">
-    <div class="max-w-md mx-auto">
-        <details class="mb-8 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <summary class="text-sm font-bold text-slate-500 cursor-pointer">🔑 Configuration API (LocalStorage)</summary>
-            <div class="mt-4 space-y-3">
-                <input type="text" id="accessId" placeholder="Tuya Access ID" class="w-full p-2 border rounded-lg text-sm">
-                <input type="password" id="accessSecret" placeholder="Tuya Access Secret" class="w-full p-2 border rounded-lg text-sm">
-                <button onclick="saveKeys()" class="w-full bg-slate-800 text-white py-2 rounded-lg text-sm font-bold">Enregistrer les clés</button>
+<body class="pb-10">
+
+    <div class="max-w-md mx-auto px-6">
+        <header class="py-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-extrabold tracking-tight">Lumeire</h1>
+                <p id="status-count" class="text-sm text-slate-400 font-medium italic">Scanner en cours...</p>
+            </div>
+            <button onclick="loadDevices()" class="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 active:rotate-180 transition-all duration-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+            </button>
+        </header>
+
+        <details class="mb-8 overflow-hidden transition-all duration-300">
+            <summary class="text-xs font-bold text-slate-400 cursor-pointer uppercase tracking-widest text-center list-none mb-4">Paramètres API</summary>
+            <div class="glass-card p-6 space-y-4">
+                <input type="text" id="accessId" placeholder="Access ID" class="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm focus:ring-2 focus:ring-blue-500 transition">
+                <input type="password" id="accessSecret" placeholder="Access Secret" class="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm focus:ring-2 focus:ring-blue-500 transition">
+                <button onclick="saveKeys()" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-blue-200">Enregistrer</button>
             </div>
         </details>
 
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-black text-slate-900 tracking-tight">LUMEIRE</h1>
-            <button onclick="loadDevices()" class="bg-blue-600 text-white px-5 py-2 rounded-xl font-bold shadow-lg active:scale-95 transition">🔄</button>
-        </div>
-
-        <div id="device-list" class="space-y-6">
+        <div id="device-list" class="space-y-8">
+            <div class="glass-card p-8 animate-pulse space-y-4">
+                <div class="h-6 bg-slate-100 rounded w-1/2"></div>
+                <div class="h-32 bg-slate-50 rounded-3xl w-full"></div>
             </div>
+        </div>
     </div>
 
     <script>
-        // Charger les clés au démarrage
         window.onload = () => {
             document.getElementById('accessId').value = localStorage.getItem('tuya_access_id') || '';
             document.getElementById('accessSecret').value = localStorage.getItem('tuya_access_secret') || '';
@@ -41,86 +88,106 @@
         function saveKeys() {
             localStorage.setItem('tuya_access_id', document.getElementById('accessId').value);
             localStorage.setItem('tuya_access_secret', document.getElementById('accessSecret').value);
-            alert("Clés enregistrées !");
             loadDevices();
         }
 
         async function apiCall(body) {
-            const accessId = localStorage.getItem('tuya_access_id');
-            const accessSecret = localStorage.getItem('tuya_access_secret');
-
-            if (!accessId || !accessSecret) {
-                alert("Veuillez configurer vos clés API en haut.");
-                return { success: false };
-            }
-
             const res = await fetch('/api/control', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...body, accessId, accessSecret })
+                body: JSON.stringify({ 
+                    ...body, 
+                    accessId: localStorage.getItem('tuya_access_id'), 
+                    accessSecret: localStorage.getItem('tuya_access_secret') 
+                })
             });
             return res.json();
         }
 
         async function loadDevices() {
             const container = document.getElementById('device-list');
-            container.innerHTML = `<p class="text-center text-slate-400 animate-pulse">Recherche des appareils...</p>`;
-
+            const status = document.getElementById('status-count');
+            
             try {
                 const data = await apiCall({ action: 'listDevices' });
-                
                 if (data.success) {
                     const devices = data.result?.devices || data.result || [];
-                    if (devices.length === 0) {
-                        container.innerHTML = `<p class="text-center text-slate-500">Aucune lumière trouvée.</p>`;
-                        return;
-                    }
-
-                    container.innerHTML = "";
-                    devices.forEach(dev => {
-                        container.innerHTML += `
-                            <div class="device-card">
-                                <div class="flex justify-between items-center mb-6">
-                                    <div>
-                                        <h3 class="font-bold text-slate-800">${dev.name}</h3>
-                                        <span class="text-[10px] text-blue-500 font-bold uppercase tracking-widest">${dev.category}</span>
-                                    </div>
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" onchange="send('${dev.id}', 'switch_led', this.checked)" class="sr-only peer">
-                                        <div class="w-12 h-6 bg-slate-200 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-6"></div>
-                                    </label>
-                                </div>
-                                
-                                <div class="space-y-6">
-                                    <div>
-                                        <label class="text-[10px] font-bold text-slate-400 mb-2 block uppercase">Luminosité</label>
-                                        <input type="range" min="10" max="1000" onchange="send('${dev.id}', 'bright_value_v2', parseInt(this.value))">
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] font-bold text-slate-400 mb-2 block uppercase">Température</label>
-                                        <input type="range" min="0" max="1000" onchange="send('${dev.id}', 'temp_value_v2', parseInt(this.value))" style="background: linear-gradient(to right, #ffb300, #ffffff, #0095ff);">
-                                    </div>
-                                </div>
-
-                                <div class="grid grid-cols-4 gap-2 mt-6 pt-4 border-t border-slate-50">
-                                    ${['white', 'colour', 'scene', 'music'].map(m => `
-                                        <button onclick="send('${dev.id}', 'work_mode', '${m}')" class="text-[9px] font-bold uppercase py-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition">${m}</button>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        `;
-                    });
-                } else {
-                    container.innerHTML = `<div class="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium">Erreur Tuya : ${data.msg || 'Inconnue'}</div>`;
+                    status.innerText = `${devices.length} appareil(s) en ligne`;
+                    container.innerHTML = devices.map(dev => renderDevice(dev)).join('');
                 }
-            } catch (err) {
-                container.innerHTML = `<div class="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium">Erreur Réseau : ${err.message}</div>`;
+            } catch (e) {
+                status.innerText = "Erreur de connexion";
             }
         }
 
+        function renderDevice(dev) {
+            return `
+                <div class="glass-card p-8 relative overflow-hidden">
+                    <div class="flex justify-between items-start mb-8">
+                        <div class="flex items-center gap-4">
+                            <div class="p-4 bg-yellow-50 rounded-2xl text-yellow-500" id="icon-${dev.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.477.859h4z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="font-extrabold text-xl text-slate-800">${dev.name}</h2>
+                                <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">${dev.category}</p>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" onchange="toggleLight('${dev.id}', this.checked)" class="sr-only peer">
+                            <div class="w-16 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-500 after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all"></div>
+                        </label>
+                    </div>
+
+                    <div class="space-y-8">
+                        <div class="space-y-3">
+                            <div class="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-tight">
+                                <span>Luminosité</span>
+                                <span id="val-b-${dev.id}">100%</span>
+                            </div>
+                            <input type="range" min="10" max="1000" class="slider-custom bg-bright" 
+                                oninput="updateLabel('val-b-${dev.id}', this.value, 10)"
+                                onchange="send('${dev.id}', 'bright_value_v2', parseInt(this.value))">
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-tight">
+                                <span>Température</span>
+                                <span id="val-t-${dev.id}">50%</span>
+                            </div>
+                            <input type="range" min="0" max="1000" class="slider-custom bg-temp" 
+                                oninput="updateLabel('val-t-${dev.id}', this.value, 10)"
+                                onchange="send('${dev.id}', 'temp_value_v2', parseInt(this.value))">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-3 mt-10">
+                        ${['white', 'colour', 'scene', 'music'].map(mode => `
+                            <button onclick="send('${dev.id}', 'work_mode', '${mode}')" 
+                                class="mode-btn py-3 rounded-2xl bg-slate-50 text-[10px] font-black uppercase text-slate-400 hover:bg-blue-50 hover:text-blue-600">
+                                ${mode}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateLabel(id, val, scale) {
+            document.getElementById(id).innerText = Math.round(val / scale) + '%';
+        }
+
+        async function toggleLight(id, state) {
+            const icon = document.getElementById('icon-' + id);
+            icon.classList.toggle('text-yellow-500', state);
+            icon.classList.toggle('text-slate-300', !state);
+            send(id, 'switch_led', state);
+        }
+
         async function send(deviceId, code, value) {
-            const res = await apiCall({ action: 'send', deviceId, code, value });
-            if (!res.success) console.error("Échec de la commande", res);
+            await apiCall({ action: 'send', deviceId, code, value });
         }
     </script>
 </body>
