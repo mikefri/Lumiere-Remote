@@ -1,1 +1,103 @@
-test
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumeire Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Inter', sans-serif; }
+        .glass-card { background: white; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .slider { accent-color: #3b82f6; width: 100%; }
+    </style>
+</head>
+<body class="p-6">
+    <div class="max-w-md mx-auto">
+        <header class="mb-8 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-800">Mes Lumières</h1>
+            <button onclick="loadDevices()" class="p-2 bg-blue-500 text-white rounded-full">🔄</button>
+        </header>
+
+        <details class="mb-6 bg-gray-200 p-4 rounded-xl">
+            <summary class="text-sm font-semibold cursor-pointer">Configuration API</summary>
+            <input type="text" id="accessId" placeholder="Access ID" class="w-full mt-2 p-2 rounded text-sm">
+            <input type="password" id="accessSecret" placeholder="Access Secret" class="w-full mt-2 p-2 rounded text-sm">
+        </details>
+
+        <div id="device-list" class="space-y-4">
+            <p class="text-center text-gray-400">Chargez vos appareils...</p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api/control';
+
+        async function apiCall(data) {
+            const accessId = document.getElementById('accessId').value;
+            const accessSecret = document.getElementById('accessSecret').value;
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...data, accessId, accessSecret })
+            });
+            return res.json();
+        }
+
+        async function loadDevices() {
+            const container = document.getElementById('device-list');
+            container.innerHTML = "Chargement...";
+            const data = await apiCall({ action: 'listDevices' });
+            
+            if (data.success) {
+                container.innerHTML = "";
+                data.result.forEach(dev => {
+                    container.innerHTML += createDeviceCard(dev);
+                });
+            }
+        }
+
+        function createDeviceCard(dev) {
+            return `
+                <div class="glass-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 class="font-bold text-gray-700">${dev.name}</h3>
+                            <span class="text-xs text-gray-400">${dev.id}</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" onchange="sendCommand('${dev.id}', 'switch_led', this.checked)" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                        </label>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500">Luminosité</label>
+                            <input type="range" min="10" max="1000" value="500" 
+                                onchange="sendCommand('${dev.id}', 'bright_value_v2', parseInt(this.value))" class="slider">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500">Température</label>
+                            <input type="range" min="0" max="1000" value="500" 
+                                onchange="sendCommand('${dev.id}', 'temp_value_v2', parseInt(this.value))" class="slider">
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function sendCommand(deviceId, code, value) {
+            console.log(`Sending ${code}: ${value}`);
+            await apiCall({ action: 'send', deviceId, code, value });
+        }
+
+        // Auto-load au démarrage si les clés sont là
+        window.onload = () => {
+            if(localStorage.getItem('tuya_id')) {
+                document.getElementById('accessId').value = localStorage.getItem('tuya_id');
+                document.getElementById('accessSecret').value = localStorage.getItem('tuya_secret');
+            }
+        };
+    </script>
+</body>
+</html>
