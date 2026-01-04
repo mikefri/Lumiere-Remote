@@ -176,6 +176,20 @@
                 });
             }
         }
+        async function fetchAllStatesWithAnim(btn) {
+    const icon = btn.querySelector('#refresh-icon');
+    
+    // On fait tourner l'icône
+    icon.classList.add('rotate-180');
+    
+    // On appelle la fonction de mise à jour
+    await fetchAllStates();
+    
+    // On remet l'icône en place après un petit délai pour l'effet visuel
+    setTimeout(() => {
+        icon.classList.remove('rotate-180');
+    }, 500);
+}
 
         // Auto-refresh toutes les 10 secondes
         setInterval(fetchAllStates, 10000);
