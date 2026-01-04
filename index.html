@@ -3,13 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lumeire X - Fix</title>
+    <title>Lumeire X - Smart View</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
     <style>
         body { background: #0f172a; color: white; font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border-radius: 28px; border: 1px solid rgba(255,255,255,0.05); }
-        .is-on { border-color: rgba(56, 189, 248, 0.5); box-shadow: 0 0 20px rgba(56, 189, 248, 0.1); }
+        
+        /* Carte Standard */
+        .glass { 
+            background: rgba(30, 41, 59, 0.7); 
+            backdrop-filter: blur(12px); 
+            border-radius: 28px; 
+            border: 1px solid rgba(255,255,255,0.05); 
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* État Allumé (Lueur bleue) */
+        .is-on { 
+            border-color: rgba(56, 189, 248, 0.5); 
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.15); 
+            transform: translateY(-2px);
+        }
+
+        /* État HORS-LIGNE (Flou et grisé) */
+        .card-offline {
+            opacity: 0.4;
+            filter: grayscale(0.8) blur(1px);
+            background: rgba(15, 23, 42, 0.4); /* Plus sombre */
+            border: 1px dashed rgba(255,255,255,0.1);
+            pointer-events: none; /* Désactive les clics */
+            transform: scale(0.98);
+        }
+
+        .status-badge {
+            font-size: 9px;
+            font-weight: 900;
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
         input[type="range"] { -webkit-appearance: none; height: 8px; border-radius: 5px; background: #334155; outline: none; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: white; border: 3px solid #38bdf8; cursor: pointer; }
     </style>
@@ -19,7 +53,7 @@
     <header class="max-w-md mx-auto py-8 flex justify-between items-center">
         <div>
             <h1 class="text-4xl font-black italic tracking-tighter bg-gradient-to-br from-sky-400 to-blue-600 bg-clip-text text-transparent">LUMEIRE X</h1>
-            <p id="global-status" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Vérification...</p>
+            <p id="global-status" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Scan du réseau...</p>
         </div>
         <div class="flex gap-2">
             <button onclick="masterOff(this)" class="p-3 glass border border-red-500/20 text-red-500 active:scale-90 transition shadow-lg shadow-red-900/20">
@@ -33,29 +67,13 @@
 
     <main id="container" class="max-w-md mx-auto space-y-6"></main>
 
-    <details class="max-w-md mx-auto mt-10"><summary class="text-center text-[10px] text-slate-600 cursor-pointer uppercase font-bold tracking-[0.2em]">Clés API</summary>
-        <div class="glass p-6 mt-4 space-y-3">
-            <input id="tuya_id" type="text" placeholder="Access ID" class="w-full p-3 bg-slate-800 rounded-xl outline-none text-sm border border-slate-700">
-            <input id="tuya_secret" type="password" placeholder="Access Secret" class="w-full p-3 bg-slate-800 rounded-xl outline-none text-sm border border-slate-700">
-            <button onclick="save()" class="w-full py-3 bg-sky-600 rounded-xl font-bold">Enregistrer et Relancer</button>
-        </div>
-    </details>
-
     <script>
         let devicesCache = [];
         let pickers = {};
 
         window.onload = () => {
-            document.getElementById('tuya_id').value = localStorage.getItem('tuya_id') || '';
-            document.getElementById('tuya_secret').value = localStorage.getItem('tuya_secret') || '';
             if(localStorage.getItem('tuya_id')) loadDevices();
         };
-
-        function save() {
-            localStorage.setItem('tuya_id', document.getElementById('tuya_id').value);
-            localStorage.setItem('tuya_secret', document.getElementById('tuya_secret').value);
-            loadDevices();
-        }
 
         async function api(body) {
             const res = await fetch('/api/control', {
@@ -72,15 +90,12 @@
 
         async function loadDevices() {
             const statusLabel = document.getElementById('global-status');
-            statusLabel.innerText = "Chargement...";
             const res = await api({ action: 'listDevices' });
             if(res.success) {
                 devicesCache = res.result;
-                statusLabel.innerText = `${devicesCache.length} Appareils Détectés`;
+                statusLabel.innerText = `${devicesCache.length} APPAREILS DÉTECTÉS`;
                 document.getElementById('container').innerHTML = devicesCache.map(d => render(d)).join('');
-                devicesCache.forEach(d => syncStatus(d.id));
-            } else {
-                statusLabel.innerText = "Erreur de connexion";
+                devicesCache.forEach(d => { if(d.online) syncStatus(d.id); });
             }
         }
 
@@ -92,25 +107,30 @@
                 const br = s.find(x => x.code === 'bright_value_v2')?.value;
                 const tp = s.find(x => x.code === 'temp_value_v2')?.value;
 
-                document.getElementById(`sw-${id}`).checked = isOn;
+                const sw = document.getElementById(`sw-${id}`);
+                if(sw) sw.checked = isOn;
                 if(br) document.getElementById(`br-${id}`).value = br;
                 if(tp) document.getElementById(`tp-${id}`).value = tp;
-                updateStyle(id, isOn);
+                updateCardVisual(id, isOn);
             }
         }
 
         function render(d) {
+            const offlineClass = !d.online ? 'card-offline' : '';
             return `
-            <div class="glass p-6 transition-all" id="card-${d.id}">
-                <div class="flex justify-between items-center mb-6">
+            <div class="glass p-6 ${offlineClass}" id="card-${d.id}">
+                <div class="flex justify-between items-start mb-6">
                     <div>
                         <h3 class="font-bold text-lg">${d.name}</h3>
-                        <span class="text-[9px] ${d.online ? 'text-green-500' : 'text-red-500'} font-bold uppercase tracking-widest">${d.online ? 'En ligne' : 'Hors ligne'}</span>
+                        <span class="status-badge ${d.online ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
+                            ${d.online ? '● Connecté' : '○ Hors-ligne'}
+                        </span>
                     </div>
+                    ${d.online ? `
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="sw-${d.id}" onchange="toggle('${d.id}', this.checked)" class="sr-only peer">
                         <div class="w-14 h-7 bg-slate-700 rounded-full peer peer-checked:bg-sky-500 after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-7"></div>
-                    </label>
+                    </label>` : ''}
                 </div>
 
                 <div class="space-y-6">
@@ -127,14 +147,16 @@
             </div>`;
         }
 
-        function updateStyle(id, isOn) {
+        function updateCardVisual(id, isOn) {
             const card = document.getElementById(`card-${id}`);
-            if(isOn) card.classList.add('is-on');
-            else card.classList.remove('is-on');
+            if(card && !card.classList.contains('card-offline')) {
+                if(isOn) card.classList.add('is-on');
+                else card.classList.remove('is-on');
+            }
         }
 
         async function toggle(id, state) {
-            updateStyle(id, state);
+            updateCardVisual(id, state);
             await sendCmd(id, 'switch_led', state);
         }
 
@@ -151,11 +173,14 @@
 
         async function masterOff(btn) {
             if(!confirm("Tout éteindre ?")) return;
-            for(const d of devicesCache) {
-                await sendCmd(d.id, 'switch_led', false);
-                document.getElementById(`sw-${d.id}`).checked = false;
-                updateStyle(d.id, false);
-            }
+            devicesCache.forEach(async d => {
+                if(d.online) {
+                    await sendCmd(d.id, 'switch_led', false);
+                    const sw = document.getElementById(`sw-${d.id}`);
+                    if(sw) sw.checked = false;
+                    updateCardVisual(d.id, false);
+                }
+            });
         }
 
         function toggleColor(id) {
