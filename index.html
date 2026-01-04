@@ -39,9 +39,13 @@
     }
 </script>
     <style>
-        body { background: #f0f4f8; color: #1e293b; font-family: 'Inter', sans-serif; }
+        body { background: #eef2f6; color: #1e293b; font-family: 'Inter', sans-serif; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border-radius: 28px; border: 1px solid rgba(255,255,255,0.05); transition: all 0.4s ease; }
-        .is-on { border-color: #bae6fd; box-shadow: 0 0 25px rgba(186, 230, 253, 0.5); background: white; }
+        .is-on { 
+    background: rgba(255, 255, 255, 0.9) !important; 
+    border-color: #38bdf8 !important; 
+    box-shadow: 0 10px 25px rgba(56, 189, 248, 0.15); 
+}
         .card-offline { opacity: 0.5; filter: grayscale(0.9) blur(3px); background: rgba(15, 23, 42, 0.8); pointer-events: none; }
         .label-text { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
         input[type="range"] { -webkit-appearance: none; height: 8px; border-radius: 5px; background: #e2e8f0; outline: none; }
@@ -59,15 +63,21 @@
 .toast-success { border-left: 4px solid #38bdf8; }
 .toast-error { border-left: 4px solid #ef4444; }
         
-        .glass { 
-    background: rgba(255, 255, 255, 0.7); 
-    backdrop-filter: blur(12px); 
-    border-radius: 28px; 
-    border: 1px solid rgba(255, 255, 255, 0.5); 
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+.glass { 
+    background: rgba(255, 255, 255, 0.6); 
+    backdrop-filter: blur(15px); 
+    border-radius: 32px; 
+    border: 1px solid rgba(255, 255, 255, 0.8); 
+    box-shadow: 0 15px 35px rgba(148, 163, 184, 0.15); 
     transition: all 0.4s ease; 
 } 
 }
+
+        /* Barre de progression des sliders */
+input[type="range"] { background: #d1dce8; }
+
+/* Bouton mode couleur (en bas de la carte) */
+.bg-sky-500\/5 { background: rgba(56, 189, 248, 0.1); }
     </style>
 </head>
 <body class="p-4 min-h-screen flex justify-center items-start overscroll-behavior-y-contain">
