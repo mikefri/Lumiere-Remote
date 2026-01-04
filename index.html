@@ -3,127 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lumeire Pro - Control</title>
+    <title>Lumeire - Pilotage</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background-color: #f0f2f5; font-family: 'Segoe UI', Roboto, sans-serif; }
-        .device-card { background: white; border-radius: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); transition: all 0.3s ease; }
-        .btn-mode { padding: 8px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; transition: 0.2s; }
-        .mode-active { background: #3b82f6; color: white; }
-        .mode-inactive { background: #e5e7eb; color: #6b7280; }
-        input[type="range"] { height: 6px; -webkit-appearance: none; background: #dfe5ed; border-radius: 5px; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: #3b82f6; border-radius: 50%; cursor: pointer; }
-    </style>
 </head>
-<body class="p-4">
+<body class="bg-slate-50 p-4">
     <div class="max-w-md mx-auto">
-        <header class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-black text-gray-800 tracking-tight">LUMEIRE</h1>
-            <button onclick="loadDevices()" class="bg-white p-3 rounded-2xl shadow-sm hover:shadow-md active:scale-95 transition">🔄</button>
-        </header>
-
-        <div id="device-list" class="space-y-6">
-            <p class="text-center text-gray-400 mt-10">Connexion aux devices Tuya...</p>
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">Mes Lumières</h1>
+            <button onclick="loadDevices()" class="bg-blue-600 text-white px-4 py-2 rounded-lg">Actualiser</button>
         </div>
+
+        <div id="device-list" class="space-y-4">
+            </div>
     </div>
 
     <script>
-        const API_URL = '/api/control';
-        // Remplace par tes vrais IDs ou crée un prompt pour les saisir
-        const credentials = {
-            accessId: 'TON_ACCESS_ID', 
-            accessSecret: 'TON_ACCESS_SECRET'
+        // Remplace par tes clés ici pour éviter le prompt
+        const CONFIG = {
+            accessId: 'TON_ID',
+            accessSecret: 'TON_SECRET'
         };
-
-        async function apiCall(data) {
-            const res = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...data, ...credentials })
-            });
-            return res.json();
-        }
 
         async function loadDevices() {
             const container = document.getElementById('device-list');
-            const data = await apiCall({ action: 'listDevices' });
-            if (data.success) {
+            container.innerHTML = "Chargement...";
+
+            try {
+                const res = await fetch('/api/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'listDevices', ...CONFIG })
+                });
+                const data = await res.json();
+
+                // L'erreur venait souvent du chemin : data.result.result ou data.result
+                const devices = data.result?.devices || data.result || [];
+                
                 container.innerHTML = "";
-                data.result.forEach(dev => container.innerHTML += createDeviceCard(dev));
+                devices.forEach(dev => {
+                    container.innerHTML += `
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="font-bold text-lg">${dev.name}</span>
+                                <input type="checkbox" class="w-6 h-6" 
+                                    onchange="send('${dev.id}', 'switch_led', this.checked)">
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 mb-1">LUMINOSITÉ</label>
+                                    <input type="range" min="10" max="1000" class="w-full" 
+                                        onchange="send('${dev.id}', 'bright_value_v2', parseInt(this.value))">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 mb-1">TEMPÉRATURE</label>
+                                    <input type="range" min="0" max="1000" class="w-full" 
+                                        onchange="send('${dev.id}', 'temp_value_v2', parseInt(this.value))">
+                                </div>
+                            </div>
+
+                            <div class="flex gap-2 mt-4">
+                                <button onclick="send('${dev.id}', 'work_mode', 'white')" class="text-[10px] bg-slate-100 px-2 py-1 rounded">Blanc</button>
+                                <button onclick="send('${dev.id}', 'work_mode', 'colour')" class="text-[10px] bg-slate-100 px-2 py-1 rounded">Couleur</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                container.innerHTML = "Erreur : " + err.message;
             }
         }
 
-        function createDeviceCard(dev) {
-            return `
-                <div class="device-card p-6" id="card-${dev.id}">
-                    <div class="flex justify-between items-start mb-6">
-                        <div>
-                            <h2 class="text-lg font-bold text-gray-800">${dev.name}</h2>
-                            <p class="text-xs text-blue-500 font-medium">Connecté • Mode V2</p>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" onchange="send('${dev.id}', 'switch_led', this.checked)" class="sr-only peer">
-                            <div class="w-14 h-7 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-green-500 after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                        </label>
-                    </div>
-
-                    <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-                        <button onclick="send('${dev.id}', 'work_mode', 'white')" class="btn-mode mode-active">White</button>
-                        <button onclick="send('${dev.id}', 'work_mode', 'colour')" class="btn-mode mode-inactive">Color</button>
-                        <button onclick="send('${dev.id}', 'work_mode', 'scene')" class="btn-mode mode-inactive">Scene</button>
-                        <button onclick="send('${dev.id}', 'work_mode', 'music')" class="btn-mode mode-inactive">Music</button>
-                    </div>
-
-                    <div class="space-y-5">
-                        <div>
-                            <div class="flex justify-between text-xs font-bold text-gray-400 mb-2">
-                                <span>LUMINOSITÉ</span>
-                                <span id="val-bright-${dev.id}">50%</span>
-                            </div>
-                            <input type="range" min="10" max="1000" step="1" class="w-full" 
-                                oninput="document.getElementById('val-bright-${dev.id}').innerText = Math.round(this.value/10) + '%'"
-                                onchange="send('${dev.id}', 'bright_value_v2', parseInt(this.value))">
-                        </div>
-
-                        <div>
-                            <div class="flex justify-between text-xs font-bold text-gray-400 mb-2">
-                                <span>CHALEUR (FROID / CHAUD)</span>
-                                <span id="val-temp-${dev.id}">50%</span>
-                            </div>
-                            <input type="range" min="0" max="1000" step="1" class="w-full" 
-                                style="background: linear-gradient(to right, #ffbb00, #ffffff, #88ccff);"
-                                oninput="document.getElementById('val-temp-${dev.id}').innerText = Math.round(this.value/10) + '%'"
-                                onchange="send('${dev.id}', 'temp_value_v2', parseInt(this.value))">
-                        </div>
-                    </div>
-
-                    <div class="mt-6 pt-6 border-t border-gray-100">
-                        <p class="text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-widest">Scènes Rapides</p>
-                        <div class="grid grid-cols-4 gap-2">
-                            ${[1, 2, 3, 4, 5, 6, 7, 8].map(num => `
-                                <button onclick="sendScene('${dev.id}', ${num})" 
-                                    class="h-10 w-full rounded-xl bg-gray-50 text-gray-600 text-sm font-bold hover:bg-blue-50 hover:text-blue-600 transition">
-                                    ${num}
-                                </button>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
         async function send(deviceId, code, value) {
-            console.log(`Command: ${code} -> ${value}`);
-            const data = await apiCall({ action: 'send', deviceId, code, value });
-            if (!data.success) console.error("Erreur commande:", data);
-        }
-
-        async function sendScene(deviceId, sceneNum) {
-            // Bascule en mode scène d'abord
-            await send(deviceId, 'work_mode', 'scene');
-            // La structure de scene_data_v2 est complexe, ici on simplifie l'appel
-            // selon ton schéma pour pointer le numéro de scène
-            console.log(`Activation Scène ${sceneNum}`);
+            await fetch('/api/control', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'send', deviceId, code, value, ...CONFIG })
+            });
         }
 
         window.onload = loadDevices;
