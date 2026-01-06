@@ -47,20 +47,7 @@
 
 
 
-<div class="glass p-6 mb-8 border-dashed border-sky-200">
-    <h2 class="label-text mb-4">Configuration Tuya Cloud</h2>
-    <div class="grid grid-cols-1 gap-4">
-        <input type="password" id="accessId" placeholder="Access ID" 
-               class="bg-white/50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-sky-400"
-               value="">
-        <input type="password" id="accessSecret" placeholder="Access Secret" 
-               class="bg-white/50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-sky-400"
-               value="">
-        <button onclick="saveTokens()" class="bg-sky-500 text-white font-black text-[10px] uppercase py-3 rounded-xl shadow-lg shadow-sky-200 active:scale-95 transition">
-            Enregistrer les accès
-        </button>
-    </div>
-</div>
+
 
     
     
@@ -92,7 +79,21 @@
                 </button>
             </div>
         </header>
-
+        
+<div class="glass p-6 mb-8 border-dashed border-sky-200">
+    <h2 class="label-text mb-4">Configuration Tuya Cloud</h2>
+    <div class="grid grid-cols-1 gap-4">
+        <input type="password" id="accessId" placeholder="Access ID" 
+               class="bg-white/50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-sky-400"
+               value="">
+        <input type="password" id="accessSecret" placeholder="Access Secret" 
+               class="bg-white/50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-sky-400"
+               value="">
+        <button onclick="saveTokens()" class="bg-sky-500 text-white font-black text-[10px] uppercase py-3 rounded-xl shadow-lg shadow-sky-200 active:scale-95 transition">
+            Enregistrer les accès
+        </button>
+    </div>
+</div>
         <main id="container" class="space-y-6"></main>
     </div>
 
