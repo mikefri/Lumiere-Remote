@@ -7,50 +7,27 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
 
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then(() => console.log("Service Worker Enregistré"));
+      }
+    </script>
 
-
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon.png">
-<link rel="icon" type="image/png" href="icon.png">
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-      .then(() => console.log("Service Worker Enregistré"));
-  }
-</script>
-
-    
     <style>
         body { background: radial-gradient(at top left, #e0f2fe, #f1f5f9 50%, #fafaf9); color: #334155; font-family: 'Inter', sans-serif; min-height: 100vh; }
         .glass { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(15px); border-radius: 32px; border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 15px 35px rgba(148, 163, 184, 0.15); transition: all 0.4s ease; }
-        
-        .is-on { 
-            background: rgba(255, 255, 255, 0.95) !important; 
-            border-color: #38bdf8 !important; 
-            box-shadow: 0 0 25px rgba(56, 189, 248, 0.3) !important;
-        }
-
+        .is-on { background: rgba(255, 255, 255, 0.95) !important; border-color: #38bdf8 !important; box-shadow: 0 0 25px rgba(56, 189, 248, 0.3) !important; }
         .card-offline { opacity: 0.5; filter: grayscale(0.8); pointer-events: none; }
         .label-text { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
-        
         input[type="range"] { -webkit-appearance: none; height: 8px; border-radius: 5px; background: #d1dce8; width: 100%; outline: none; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: white; border: 4px solid #38bdf8; cursor: pointer; }
     </style>
 </head>
 
-
-
-
-
-    
 <body class="p-4 flex justify-center items-start">
-
-
-
-
-
-    
-    
     <div id="custom-confirm" class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
         <div class="glass p-8 max-w-xs w-full text-center border-sky-500/30">
             <h3 id="confirm-title" class="text-xl font-black mb-6 uppercase">Action ?</h3>
@@ -68,6 +45,9 @@
                 <p class="label-text mt-1 text-sky-500">Contrôle Stable</p>
             </div>
             <div class="flex gap-2">
+                <button onclick="toggleConfig()" class="p-4 glass text-slate-400 active:rotate-90 transition shadow-lg">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><circle cx="12" cy="12" r="3" /></svg>
+                </button>
                 <button onclick="masterAction(true)" class="p-4 glass text-emerald-500 active:scale-90 transition shadow-lg border-emerald-500/20">
                     <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c3.31 0 6 2.69 6 6 0 2.22-1.21 4.15-3 5.19V17c0 .55-.45 1-1 1h-4c-.55 0-1-.45-1-1v-3.81c-1.79-1.04-3-2.97-3-5.19 0-3.31 2.69-6 6-6zm2 18h-4v1h4v-1zm0 2h-4v1h4v-1z"/></svg>
                 </button>
@@ -80,20 +60,15 @@
             </div>
         </header>
         
-<div class="glass p-6 mb-8 border-dashed border-sky-200">
-    <h2 class="label-text mb-4">Configuration Tuya Cloud</h2>
-    <div class="grid grid-cols-1 gap-4">
-        <input type="password" id="accessId" placeholder="Access ID" 
-               class="bg-white/50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-sky-400"
-               value="">
-        <input type="password" id="accessSecret" placeholder="Access Secret" 
-               class="bg-white/50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-sky-400"
-               value="">
-        <button onclick="saveTokens()" class="bg-sky-500 text-white font-black text-[10px] uppercase py-3 rounded-xl shadow-lg shadow-sky-200 active:scale-95 transition">
-            Enregistrer les accès
-        </button>
-    </div>
-</div>
+        <div id="config-card" class="glass p-6 mb-8 border-dashed border-sky-200">
+            <h2 class="label-text mb-4">Configuration Tuya Cloud</h2>
+            <div class="grid grid-cols-1 gap-4">
+                <input type="password" id="accessId" placeholder="Access ID" class="bg-white/50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-sky-400">
+                <input type="password" id="accessSecret" placeholder="Access Secret" class="bg-white/50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-sky-400">
+                <button onclick="saveTokens()" class="bg-sky-500 text-white font-black text-[10px] uppercase py-3 rounded-xl shadow-lg shadow-sky-200 active:scale-95 transition">Enregistrer les accès</button>
+            </div>
+        </div>
+
         <main id="container" class="space-y-6"></main>
     </div>
 
@@ -101,8 +76,6 @@
     let devicesCache = [];
     let pickers = {};
     let deviceStates = {};
-
-    // --- CONFIGURATION ET TOKENS ---
 
     function initTokens() {
         const id = localStorage.getItem('tuya_id');
@@ -112,79 +85,55 @@
         return { id, secret };
     }
 
+    function toggleConfig() {
+        const card = document.getElementById('config-card');
+        card.classList.toggle('hidden');
+    }
+
     function saveTokens() {
         const id = document.getElementById('accessId').value.trim();
         const secret = document.getElementById('accessSecret').value.trim();
-        
-        if(!id || !secret) {
-            alert("Veuillez remplir les deux champs.");
-            return;
-        }
-
+        if(!id || !secret) { alert("Veuillez remplir les deux champs."); return; }
         localStorage.setItem('tuya_id', id);
         localStorage.setItem('tuya_secret', secret);
-        
-        // On recharge la page proprement pour appliquer les changements
         window.location.reload();
     }
-
-    // --- COMMUNICATION API ---
 
     async function api(body) {
         const tid = localStorage.getItem('tuya_id');
         const tsec = localStorage.getItem('tuya_secret');
-
         try {
             const res = await fetch('/api/control', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...body, accessId: tid, accessSecret: tsec })
             });
-            const data = await res.json();
-            if (!data.success) console.error("Erreur API:", data.msg);
-            return data;
-        } catch (e) { 
-            console.error("Erreur réseau:", e);
-            return { success: false }; 
-        }
+            return await res.json();
+        } catch (e) { return { success: false }; }
     }
-
-    // --- LOGIQUE APPAREILS ---
 
     async function loadDevices() {
         const container = document.getElementById('container');
-        // Message d'attente
-        container.innerHTML = '<p class="text-center label-text animate-pulse">Chargement des appareils...</p>';
-        
+        container.innerHTML = '<p class="text-center label-text animate-pulse">Chargement...</p>';
         const res = await api({ action: 'listDevices' });
-        
         if(res.success && res.result) {
-            devicesCache = res.result.sort((a, b) => {
-                if (a.online !== b.online) return a.online ? -1 : 1;
-                return a.name.localeCompare(b.name);
-            });
+            devicesCache = res.result.sort((a, b) => (a.online === b.online ? a.name.localeCompare(b.name) : (a.online ? -1 : 1)));
             container.innerHTML = devicesCache.map(d => render(d)).join('');
             devicesCache.forEach(d => { if(d.online) syncStatus(d.id); });
         } else {
-            container.innerHTML = `
-                <div class="text-center p-8 bg-red-50 rounded-3xl border border-red-100">
-                    <p class="text-red-500 font-bold">Impossible de charger les appareils</p>
-                    <p class="text-[10px] uppercase mt-2">Vérifiez vos accès Tuya Cloud</p>
-                </div>`;
+            container.innerHTML = '<div class="text-center p-8 bg-red-50 rounded-3xl text-red-500 font-bold">Erreur de connexion Tuya</div>';
+            document.getElementById('config-card').classList.remove('hidden');
         }
     }
 
     function render(d) {
         const isLight = d.category === 'dj' || d.category === 'dd' || d.name.toLowerCase().includes('lum');
-        return `
-        <div class="glass p-8 ${!d.online ? 'card-offline' : ''}" id="card-${d.id}">
+        return `<div class="glass p-8 ${!d.online ? 'card-offline' : ''}" id="card-${d.id}">
             <div class="flex justify-between items-start mb-6">
                 <div>
                     <h3 class="font-black text-xl mb-2">${d.name}</h3>
                     <div class="flex gap-2">
-                        <span class="text-[9px] font-black px-2 py-1 rounded bg-black/5 uppercase ${d.online ? 'text-blue-500' : 'text-slate-400'}">
-                            ${d.online ? '● Connecté' : '○ Hors-ligne'}
-                        </span>
+                        <span class="text-[9px] font-black px-2 py-1 rounded bg-black/5 uppercase ${d.online ? 'text-blue-500' : 'text-slate-400'}">${d.online ? '● Connecté' : '○ Hors-ligne'}</span>
                         <span id="badge-status-${d.id}" class="text-[9px] font-black px-2 py-1 rounded bg-black/5 uppercase text-slate-400">...</span>
                     </div>
                 </div>
@@ -193,40 +142,27 @@
                     <div class="w-14 h-7 bg-slate-200 rounded-full peer peer-checked:bg-sky-500 after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-7 shadow-inner"></div>
                 </label>
             </div>
-            ${isLight ? `
-            <div class="space-y-6 border-t border-black/5 pt-6">
-                <div class="space-y-2">
-                    <span class="label-text">Intensité</span>
-                    <input type="range" id="br-${d.id}" min="10" max="1000" onchange="handleBrightness('${d.id}', this.value)">
-                </div>
-                <div class="space-y-2">
-                    <span class="label-text">Température</span>
-                    <input type="range" id="tp-${d.id}" min="0" max="1000" class="bg-gradient-to-r from-orange-300 via-white to-sky-300" onchange="sendCmd('${d.id}','temp_value_v2',parseInt(this.value))">
-                </div>
+            ${isLight ? `<div class="space-y-6 border-t border-black/5 pt-6">
+                <div class="space-y-2"><span class="label-text">Intensité</span><input type="range" id="br-${d.id}" min="10" max="1000" onchange="handleBrightness('${d.id}', this.value)"></div>
+                <div class="space-y-2"><span class="label-text">Température</span><input type="range" id="tp-${d.id}" min="0" max="1000" class="bg-gradient-to-r from-orange-300 via-white to-sky-300" onchange="sendCmd('${d.id}','temp_value_v2',parseInt(this.value))"></div>
                 <div id="pk-${d.id}" class="hidden flex justify-center py-4"></div>
                 <div class="flex gap-2">
                     <button onclick="setForcedWhite('${d.id}')" class="flex-1 py-3 bg-white border border-slate-200 rounded-2xl text-[9px] font-black uppercase">Mode Blanc</button>
                     <button onclick="togglePicker('${d.id}')" class="flex-1 py-3 bg-sky-500/10 text-sky-600 rounded-2xl text-[9px] font-black uppercase">Couleurs</button>
                 </div>
-            </div>` : ''}
-        </div>`;
+            </div>` : ''}</div>`;
     }
 
     async function syncStatus(id) {
         const res = await api({ action: 'getStatus', deviceId: id });
         if(res.success && res.result) {
             const s = res.result;
-            const workMode = s.find(x => x.code === 'work_mode')?.value || 'white';
-            const colourData = s.find(x => x.code === 'colour_data_v2')?.value;
-            deviceStates[id] = { work_mode: workMode, colour_data: colourData };
-            
+            deviceStates[id] = { 
+                work_mode: s.find(x => x.code === 'work_mode')?.value || 'white', 
+                colour_data: s.find(x => x.code === 'colour_data_v2')?.value 
+            };
             const sw = s.find(x => x.code === 'switch_led' || x.code === 'switch_1');
-            if(sw) {
-                const el = document.getElementById(`sw-${id}`);
-                if(el) el.checked = sw.value;
-                updateVisual(id, sw.value);
-            }
-            
+            if(sw) { document.getElementById(`sw-${id}`).checked = sw.value; updateVisual(id, sw.value); }
             const br = s.find(x => x.code === 'bright_value_v2')?.value;
             if(br && document.getElementById(`br-${id}`)) document.getElementById(`br-${id}`).value = br;
         }
@@ -236,106 +172,72 @@
         const card = document.getElementById(`card-${id}`);
         const badge = document.getElementById(`badge-status-${id}`);
         if(!card || !badge) return;
-        if(isOn) {
-            card.classList.add('is-on');
-            badge.innerText = "● Allumé";
-            badge.classList.replace('text-slate-400', 'text-sky-400');
-        } else {
-            card.classList.remove('is-on');
-            badge.innerText = "○ Éteint";
-            badge.classList.replace('text-sky-400', 'text-slate-400');
-        }
+        isOn ? card.classList.add('is-on') : card.classList.remove('is-on');
+        badge.innerText = isOn ? "● Allumé" : "○ Éteint";
+        badge.className = `text-[9px] font-black px-2 py-1 rounded bg-black/5 uppercase ${isOn ? 'text-sky-400' : 'text-slate-400'}`;
     }
 
     async function universalToggle(id, state) {
         updateVisual(id, state);
         const dev = devicesCache.find(d => d.id === id);
-        if(!dev) return;
-        const code = (dev.category === 'dj' || dev.category === 'dd' || dev.name.toLowerCase().includes('lum')) ? 'switch_led' : 'switch_1';
+        const code = (dev?.category === 'dj' || dev?.category === 'dd' || dev?.name.toLowerCase().includes('lum')) ? 'switch_led' : 'switch_1';
         await sendCmd(id, code, state);
     }
 
     async function handleBrightness(id, val) {
         const state = deviceStates[id];
-        if (state && state.work_mode === 'colour' && state.colour_data) {
+        if (state?.work_mode === 'colour' && state.colour_data) {
             let color = typeof state.colour_data === 'string' ? JSON.parse(state.colour_data) : state.colour_data;
             const newData = { h: color.h, s: color.s, v: parseInt(val) };
             await sendCmd(id, 'colour_data_v2', newData);
             deviceStates[id].colour_data = newData;
-        } else {
-            await sendCmd(id, 'bright_value_v2', parseInt(val));
-        }
+        } else { await sendCmd(id, 'bright_value_v2', parseInt(val)); }
     }
 
     async function setForcedWhite(id) {
         await sendCmd(id, 'work_mode', 'white');
         if(deviceStates[id]) deviceStates[id].work_mode = 'white';
-        const br = document.getElementById(`br-${id}`).value;
-        await sendCmd(id, 'bright_value_v2', parseInt(br));
+        await sendCmd(id, 'bright_value_v2', parseInt(document.getElementById(`br-${id}`).value));
     }
 
     function togglePicker(id) {
-        const p = document.getElementById(`pk-${id}`);
-        p.classList.toggle('hidden');
+        document.getElementById(`pk-${id}`).classList.toggle('hidden');
         if(!pickers[id]) {
             pickers[id] = new iro.ColorPicker(`#pk-${id}`, { width: 160, layout: [{ component: iro.ui.Wheel }] });
             pickers[id].on('input:end', async (c) => {
                 const data = { h: Math.round(c.hsv.h), s: Math.round(c.hsv.s * 10), v: Math.round(c.hsv.v * 10) };
                 await sendCmd(id, 'work_mode', 'colour');
                 await sendCmd(id, 'colour_data_v2', data);
-                if(deviceStates[id]) {
-                    deviceStates[id].work_mode = 'colour';
-                    deviceStates[id].colour_data = data;
-                }
+                if(deviceStates[id]) { deviceStates[id].work_mode = 'colour'; deviceStates[id].colour_data = data; }
             });
         }
     }
 
-    async function sendCmd(deviceId, code, value) { 
-        return await api({ action: 'send', deviceId, code, value }); 
-    }
+    async function sendCmd(deviceId, code, value) { return await api({ action: 'send', deviceId, code, value }); }
 
     async function masterAction(turnOn) {
         const modal = document.getElementById('custom-confirm');
-        const title = document.getElementById('confirm-title');
-        const yesBtn = document.getElementById('confirm-yes');
-        
-        title.innerText = turnOn ? "Tout allumer ?" : "Tout éteindre ?";
-        yesBtn.className = turnOn ? "flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase text-[10px]" : "flex-1 py-4 bg-red-500 text-white rounded-2xl font-black uppercase text-[10px]";
-        
+        document.getElementById('confirm-title').innerText = turnOn ? "Tout allumer ?" : "Tout éteindre ?";
+        document.getElementById('confirm-yes').className = `flex-1 py-4 ${turnOn ? 'bg-emerald-500' : 'bg-red-500'} text-white rounded-2xl font-black uppercase text-[10px]`;
         modal.classList.remove('hidden');
         const choice = await new Promise(r => {
             document.getElementById('confirm-yes').onclick = () => r(true);
             document.getElementById('confirm-no').onclick = () => r(false);
         });
         modal.classList.add('hidden');
-        
-        if(choice) {
-            devicesCache.forEach(d => { 
-                if(d.online) { 
-                    universalToggle(d.id, turnOn); 
-                    const swEl = document.getElementById(`sw-${d.id}`);
-                    if(swEl) swEl.checked = turnOn; 
-                }
-            });
+        if(choice) devicesCache.forEach(d => { if(d.online) { universalToggle(d.id, turnOn); if(document.getElementById(`sw-${d.id}`)) document.getElementById(`sw-${d.id}`).checked = turnOn; } });
+    }
+
+    window.onload = () => {
+        const tokens = initTokens();
+        const configCard = document.getElementById('config-card');
+        if (tokens.id && tokens.secret) {
+            configCard.classList.add('hidden');
+            loadDevices();
+        } else {
+            configCard.classList.remove('hidden');
         }
-    }
-
-    // --- DEMARRAGE UNIQUE ---
-// Nouveau window.onload intelligent
-window.onload = () => {
-    const tokens = initTokens();
-    const configCard = document.getElementById('config-card');
-
-    if (tokens.id && tokens.secret) {
-        // Si les tokens existent, on cache la config et on charge les devices
-        configCard.classList.add('hidden');
-        loadDevices();
-    } else {
-        // Sinon, on force l'affichage du bloc de configuration
-        configCard.classList.remove('hidden');
-    }
-};
+    };
 </script>
 </body>
 </html>
