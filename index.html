@@ -51,6 +51,8 @@
             -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; 
             background: white; border: 4px solid var(--accent); cursor: pointer; 
         }
+
+        .card-offline { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
     </style>
 </head>
 <body class="p-4 flex justify-center items-start">
@@ -58,7 +60,7 @@
         <header class="max-w-md mx-auto py-6 flex justify-between items-center">
             <div>
                 <h1 class="text-4xl font-black italic tracking-tighter bg-gradient-to-br from-sky-500 to-blue-700 bg-clip-text text-transparent">Lumiere X</h1>
-                <p id="theme-status" class="label-text mt-1 text-sky-500">Ambiance Automatique</p>
+                <p id="theme-status" class="label-text mt-1 text-sky-500">Contrôle Intelligent</p>
             </div>
             <div class="flex gap-2">
                 <button onclick="masterOff()" class="p-3 glass border border-red-500/20 text-red-500 active:scale-90 transition">
@@ -80,6 +82,7 @@
     <script>
         let devicesCache = [];
         let pickers = {};
+        let deviceStates = {}; // Stockage local des états pour la gestion de l'intensité
 
         window.onload = () => {
             const hour = new Date().getHours();
@@ -105,6 +108,7 @@
         async function loadDevices() {
             const res = await api({ action: 'listDevices' });
             if(res.success) {
+                // TRI : Connectés en haut, déconnectés en bas
                 devicesCache = res.result.sort((a, b) => (a.online === b.online) ? 0 : a.online ? -1 : 1);
                 document.getElementById('container').innerHTML = devicesCache.map(d => render(d)).join('');
                 devicesCache.forEach(d => { if(d.online) syncStatus(d.id); });
@@ -114,7 +118,7 @@
         function render(d) {
             const isLight = d.category === 'dj' || d.category === 'dd' || d.name.toLowerCase().includes('lum');
             return `
-            <div class="glass p-8 ${!d.online ? 'opacity-40 grayscale pointer-events-none' : ''}" id="card-${d.id}">
+            <div class="glass p-8 ${!d.online ? 'card-offline' : ''}" id="card-${d.id}">
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <h3 class="font-black text-xl leading-none">${d.name}</h3>
@@ -131,8 +135,8 @@
                 ${isLight ? `
                 <div class="space-y-6 border-t border-black/5 dark:border-white/5 pt-6 mt-4">
                     <div class="space-y-2">
-                        <span class="label-text">Intensité (Blanc)</span>
-                        <input type="range" id="br-${d.id}" min="10" max="1000" oninput="changeBrightness('${d.id}', this.value)">
+                        <span class="label-text">Intensité Globale</span>
+                        <input type="range" id="br-${d.id}" min="10" max="1000" onchange="changeBrightness('${d.id}', this.value)">
                     </div>
                     <div class="space-y-2">
                         <span class="label-text">Température</span>
@@ -147,30 +151,37 @@
             </div>`;
         }
 
-        // --- NOUVELLE LOGIQUE POUR ÉVITER LE CHANGEMENT DE COULEUR ---
+        async function changeBrightness(id, val) {
+            const state = deviceStates[id];
+            const intVal = parseInt(val);
+
+            // Si l'ampoule est en mode COULEUR, on modifie le V du colour_data_v2
+            if (state && state.work_mode === 'colour' && state.colour_data_v2) {
+                const updatedColor = {
+                    h: state.colour_data_v2.h,
+                    s: state.colour_data_v2.s,
+                    v: intVal
+                };
+                await sendCmd(id, 'colour_data_v2', updatedColor);
+                deviceStates[id].colour_data_v2 = updatedColor; // Update cache
+            } else {
+                // Sinon on modifie le bright_value_v2 classique (Mode Blanc)
+                await sendCmd(id, 'bright_value_v2', intVal);
+            }
+        }
 
         async function setWhiteMode(id) {
-            // Force le mode blanc AVANT de régler la luminosité
             await sendCmd(id, 'work_mode', 'white');
+            if(deviceStates[id]) deviceStates[id].work_mode = 'white';
             const val = document.getElementById(`br-${id}`).value;
             await sendCmd(id, 'bright_value_v2', parseInt(val));
         }
 
-        async function changeBrightness(id, val) {
-            // Si on bouge le slider d'intensité, on s'assure d'être en mode "white" 
-            // pour ne pas perturber le mode couleur s'il était actif.
-            // Si tu veux que l'intensité change AUSSI la couleur, il faudrait envoyer 'colour_data_v2'
-            await sendCmd(id, 'work_mode', 'white'); 
-            await sendCmd(id, 'bright_value_v2', parseInt(val));
-        }
-
-        // --- FIN LOGIQUE ---
-
         async function universalToggle(id, state) {
             updateVisual(id, state);
             const dev = devicesCache.find(x => x.id === id);
-            const code = (dev.category === 'dj' || dev.category === 'dd' || dev.name.toLowerCase().includes('lum')) ? 'switch_led' : 'switch_1';
-            await sendCmd(id, code, state);
+            const isLight = dev.category === 'dj' || dev.category === 'dd' || dev.name.toLowerCase().includes('lum');
+            await sendCmd(id, isLight ? 'switch_led' : 'switch_1', state);
         }
 
         function updateVisual(id, isOn) {
@@ -192,6 +203,13 @@
             const res = await api({ action: 'getStatus', deviceId: id });
             if(res.success && res.result) {
                 const s = res.result;
+                
+                // On stocke l'état complet pour la logique d'intensité
+                deviceStates[id] = {
+                    work_mode: s.find(x => x.code === 'work_mode')?.value,
+                    colour_data_v2: s.find(x => x.code === 'colour_data_v2')?.value
+                };
+
                 const status = s.find(x => x.code === 'switch_led' || x.code === 'switch_1');
                 if(status) {
                     document.getElementById(`sw-${id}`).checked = status.value;
@@ -199,6 +217,9 @@
                 }
                 const br = s.find(x => x.code === 'bright_value_v2')?.value;
                 if(br && document.getElementById(`br-${id}`)) document.getElementById(`br-${id}`).value = br;
+                
+                const tp = s.find(x => x.code === 'temp_value_v2')?.value;
+                if(tp && document.getElementById(`tp-${id}`)) document.getElementById(`tp-${id}`).value = tp;
             }
         }
 
@@ -212,8 +233,14 @@
             if(!pickers[id]) {
                 pickers[id] = new iro.ColorPicker(`#pk-${id}`, { width: 160, layout: [{ component: iro.ui.Wheel }] });
                 pickers[id].on('input:end', async (c) => {
+                    const newColor = { h: Math.round(c.hsv.h), s: Math.round(c.hsv.s * 10), v: Math.round(c.hsv.v * 10) };
                     await sendCmd(id, 'work_mode', 'colour');
-                    await sendCmd(id, 'colour_data_v2', { h: Math.round(c.hsv.h), s: Math.round(c.hsv.s * 10), v: Math.round(c.hsv.v * 10) });
+                    await sendCmd(id, 'colour_data_v2', newColor);
+                    // Mise à jour de l'état local
+                    if(deviceStates[id]) {
+                        deviceStates[id].work_mode = 'colour';
+                        deviceStates[id].colour_data_v2 = newColor;
+                    }
                 });
             }
         }
