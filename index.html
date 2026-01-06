@@ -40,8 +40,16 @@
             transition: all 0.4s ease; 
         }
 
-        .is-on { background: rgba(255, 255, 255, 0.95) !important; border-color: #38bdf8 !important; }
-        body.dark-mode .is-on { background: rgba(30, 41, 59, 0.9) !important; box-shadow: 0 0 25px rgba(34, 211, 238, 0.15); }
+        /* [x] Feedback visuel (Glow & Border) */
+        .is-on { 
+            background: rgba(255, 255, 255, 0.95) !important; 
+            border-color: var(--accent) !important;
+            box-shadow: 0 10px 25px rgba(56, 189, 248, 0.2);
+        }
+        body.dark-mode .is-on { 
+            background: rgba(30, 41, 59, 0.9) !important; 
+            box-shadow: 0 0 25px rgba(34, 211, 238, 0.15); 
+        }
 
         .label-text { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
         
@@ -52,10 +60,12 @@
             background: white; border: 4px solid var(--accent); cursor: pointer; 
         }
 
-        .card-offline { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
+        /* [x] Tri visuel : Désactivation des cartes offline */
+        .card-offline { opacity: 0.4; filter: grayscale(1); pointer-events: none !important; }
     </style>
 </head>
 <body class="p-4 flex justify-center items-start">
+    
     <div id="custom-confirm" class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
         <div class="glass p-8 max-w-xs w-full border border-sky-500/30 shadow-2xl text-center">
             <h3 class="text-xl font-black mb-6">Tout éteindre ?</h3>
@@ -70,7 +80,7 @@
         <header class="max-w-md mx-auto py-6 flex justify-between items-center">
             <div>
                 <h1 class="text-4xl font-black italic tracking-tighter bg-gradient-to-br from-sky-500 to-blue-700 bg-clip-text text-transparent">Lumiere X</h1>
-                <p id="theme-status" class="label-text mt-1 text-sky-500">Tableau de Bord</p>
+                <p id="theme-status" class="label-text mt-1 text-sky-500">Auto-Ambiance</p>
             </div>
             <div class="flex gap-2">
                 <button onclick="masterOff()" class="p-3 glass border border-red-500/20 text-red-500 active:scale-90 transition">
@@ -84,17 +94,27 @@
 
         <main id="container" class="max-w-md mx-auto space-y-6"></main>
 
-        <footer class="max-w-md mx-auto mt-12 text-center opacity-50">
-            <button onclick="document.body.classList.toggle('dark-mode')" class="label-text">Changer Thème 🌗</button>
+        <footer class="max-w-md mx-auto mt-12 pt-8 border-t border-black/5 dark:border-white/5">
+            <div class="flex flex-col items-center gap-4">
+                <button onclick="document.body.classList.toggle('dark-mode')" class="label-text bg-white/50 dark:bg-slate-800 px-4 py-2 rounded-full shadow-sm hover:scale-105 transition">
+                    Changer de thème 🌗
+                </button>
+                <div class="text-center">
+                    <p class="text-[10px] font-bold tracking-widest uppercase opacity-40">Système Domotique X-Remote</p>
+                    <p class="text-[9px] opacity-30 mt-1">Connecté via Tuya Cloud API v2.0</p>
+                </div>
+            </div>
         </footer>
     </div>
 
     <script>
         let devicesCache = [];
         let pickers = {};
+        // [x] Mémoire d'état : Variable de stockage des modes
         let deviceStates = {};
 
         window.onload = () => {
+            // [x] Thème Adaptatif : Basculement auto après 20h
             const hour = new Date().getHours();
             if(hour >= 20 || hour < 7) document.body.classList.add('dark-mode');
             loadDevices();
@@ -118,14 +138,18 @@
         async function loadDevices() {
             const res = await api({ action: 'listDevices' });
             if(res.success) {
-                // TRI : Connectés en premier
-                devicesCache = res.result.sort((a, b) => (a.online === b.online) ? 0 : a.online ? -1 : 1);
+                // [x] Tri automatique (Online haut) + [x] Tri alphabétique
+                devicesCache = res.result.sort((a, b) => {
+                    if (a.online !== b.online) return a.online ? -1 : 1;
+                    return a.name.localeCompare(b.name);
+                });
                 document.getElementById('container').innerHTML = devicesCache.map(d => render(d)).join('');
                 devicesCache.forEach(d => { if(d.online) syncStatus(d.id); });
             }
         }
 
         function render(d) {
+            // [x] Gestion Hybride : On détecte si c'est une lumière
             const isLight = d.category === 'dj' || d.category === 'dd' || d.name.toLowerCase().includes('lum');
             return `
             <div class="glass p-8 ${!d.online ? 'card-offline' : ''}" id="card-${d.id}">
@@ -134,7 +158,7 @@
                         <h3 class="font-black text-xl leading-none">${d.name}</h3>
                         <div class="mt-3 flex items-center gap-2">
                             <span id="badge-${d.id}" class="text-[9px] font-black px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 uppercase">○ Éteint</span>
-                            <span class="text-[8px] opacity-40 uppercase font-bold">${d.online ? 'Connecté' : 'Hors-ligne'}</span>
+                            <span class="text-[8px] opacity-40 uppercase font-bold">${d.online ? 'En Ligne' : 'Hors-ligne'}</span>
                         </div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
@@ -149,6 +173,10 @@
                         <span class="label-text">Luminosité</span>
                         <input type="range" id="br-${d.id}" min="10" max="1000" onchange="changeBrightness('${d.id}', this.value)">
                     </div>
+                    <div class="space-y-2">
+                        <span class="label-text">Température du Blanc</span>
+                        <input type="range" id="tp-${d.id}" min="0" max="1000" class="bg-gradient-to-r from-orange-300 via-white to-sky-300" onchange="sendCmd('${d.id}','temp_value_v2',parseInt(this.value))">
+                    </div>
                     <div id="pk-${d.id}" class="hidden flex justify-center py-4 bg-black/5 rounded-3xl"></div>
                     <div class="flex gap-2">
                         <button onclick="setWhiteMode('${d.id}')" class="flex-1 py-3 bg-white/50 dark:bg-white/10 rounded-2xl text-[9px] font-black uppercase">Mode Blanc</button>
@@ -162,7 +190,7 @@
             const res = await api({ action: 'getStatus', deviceId: id });
             if(res.success && res.result) {
                 const s = res.result;
-                // Mémorisation du mode pour l'intensité
+                // [x] Mémoire d'état : On peuple l'objet states
                 deviceStates[id] = {
                     work_mode: s.find(x => x.code === 'work_mode')?.value || 'white',
                     colour_data_v2: s.find(x => x.code === 'colour_data_v2')?.value
@@ -175,16 +203,21 @@
                 }
                 const br = s.find(x => x.code === 'bright_value_v2')?.value;
                 if(br && document.getElementById(`br-${id}`)) document.getElementById(`br-${id}`).value = br;
+                
+                const tp = s.find(x => x.code === 'temp_value_v2')?.value;
+                if(tp && document.getElementById(`tp-${id}`)) document.getElementById(`tp-${id}`).value = tp;
             }
         }
 
+        // [x] Intensité intelligente (détection mode)
         async function changeBrightness(id, val) {
             const state = deviceStates[id];
             const intVal = parseInt(val);
             if (state && state.work_mode === 'colour' && state.colour_data_v2) {
-                // En mode couleur, on modifie le V (Value) sans toucher à la couleur (H, S)
                 const c = typeof state.colour_data_v2 === 'string' ? JSON.parse(state.colour_data_v2) : state.colour_data_v2;
-                await sendCmd(id, 'colour_data_v2', { h: c.h, s: c.s, v: intVal });
+                const newData = { h: c.h, s: c.s, v: intVal };
+                await sendCmd(id, 'colour_data_v2', newData);
+                deviceStates[id].colour_data_v2 = newData;
             } else {
                 await sendCmd(id, 'bright_value_v2', intVal);
             }
@@ -192,14 +225,16 @@
 
         async function setWhiteMode(id) {
             await sendCmd(id, 'work_mode', 'white');
-            deviceStates[id].work_mode = 'white';
+            if(deviceStates[id]) deviceStates[id].work_mode = 'white';
             const br = document.getElementById(`br-${id}`).value;
             await sendCmd(id, 'bright_value_v2', parseInt(br));
+            document.getElementById(`pk-${id}`).classList.add('hidden');
         }
 
         async function universalToggle(id, state) {
             updateVisual(id, state);
             const dev = devicesCache.find(x => x.id === id);
+            // [x] Gestion Hybride automatique
             const code = (dev.category === 'dj' || dev.category === 'dd' || dev.name.toLowerCase().includes('lum')) ? 'switch_led' : 'switch_1';
             await sendCmd(id, code, state);
         }
@@ -211,13 +246,11 @@
             if(isOn) {
                 card.classList.add('is-on');
                 badge.innerText = "● Allumé";
-                badge.classList.replace('bg-slate-100', 'bg-sky-50');
-                badge.classList.replace('text-slate-400', 'text-sky-500');
+                badge.className = "text-[9px] font-black px-2 py-1 rounded bg-sky-50 dark:bg-sky-900/30 uppercase text-sky-500";
             } else {
                 card.classList.remove('is-on');
                 badge.innerText = "○ Éteint";
-                badge.classList.replace('bg-sky-50', 'bg-slate-100');
-                badge.classList.replace('text-sky-500', 'text-slate-400');
+                badge.className = "text-[9px] font-black px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 uppercase text-slate-400";
             }
         }
 
@@ -234,8 +267,10 @@
                     const data = { h: Math.round(c.hsv.h), s: Math.round(c.hsv.s * 10), v: Math.round(c.hsv.v * 10) };
                     await sendCmd(id, 'work_mode', 'colour');
                     await sendCmd(id, 'colour_data_v2', data);
-                    deviceStates[id].work_mode = 'colour';
-                    deviceStates[id].colour_data_v2 = data;
+                    if(deviceStates[id]) {
+                        deviceStates[id].work_mode = 'colour';
+                        deviceStates[id].colour_data_v2 = data;
+                    }
                 });
             }
         }
@@ -254,7 +289,8 @@
                 devicesCache.forEach(d => {
                     if(d.online) {
                         universalToggle(d.id, false);
-                        document.getElementById(`sw-${d.id}`).checked = false;
+                        const chk = document.getElementById(`sw-${d.id}`);
+                        if(chk) chk.checked = false;
                     }
                 });
             }
