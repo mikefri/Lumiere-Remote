@@ -322,12 +322,20 @@
     }
 
     // --- DEMARRAGE UNIQUE ---
-    window.onload = () => {
-        const tokens = initTokens();
-        if(tokens.id && tokens.secret) {
-            loadDevices();
-        }
-    };
+// Nouveau window.onload intelligent
+window.onload = () => {
+    const tokens = initTokens();
+    const configCard = document.getElementById('config-card');
+
+    if (tokens.id && tokens.secret) {
+        // Si les tokens existent, on cache la config et on charge les devices
+        configCard.classList.add('hidden');
+        loadDevices();
+    } else {
+        // Sinon, on force l'affichage du bloc de configuration
+        configCard.classList.remove('hidden');
+    }
+};
 </script>
 </body>
 </html>
