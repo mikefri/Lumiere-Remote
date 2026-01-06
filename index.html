@@ -40,7 +40,6 @@
             transition: all 0.4s ease; 
         }
 
-        /* [x] Feedback visuel (Glow & Border) quand allumé */
         .is-on { 
             background: rgba(255, 255, 255, 0.95) !important; 
             border-color: var(--accent) !important;
@@ -60,7 +59,6 @@
             background: white; border: 4px solid var(--accent); cursor: pointer; 
         }
 
-        /* [x] Tri automatique visuel (Offline grisé) */
         .card-offline { opacity: 0.4; filter: grayscale(1); pointer-events: none !important; }
     </style>
 </head>
@@ -80,7 +78,7 @@
         <header class="max-w-md mx-auto py-6 flex justify-between items-center">
             <div>
                 <h1 class="text-4xl font-black italic tracking-tighter bg-gradient-to-br from-sky-500 to-blue-700 bg-clip-text text-transparent">Lumiere X</h1>
-                <p id="theme-status" class="label-text mt-1 text-sky-500">Synchronisation active</p>
+                <p id="theme-status" class="label-text mt-1 text-sky-500">Contrôle à distance</p>
             </div>
             <div class="flex gap-2">
                 <button onclick="masterOff()" class="p-3 glass border border-red-500/20 text-red-500 active:scale-90 transition">
@@ -94,27 +92,20 @@
 
         <main id="container" class="max-w-md mx-auto space-y-6"></main>
 
-        <footer class="max-w-md mx-auto mt-12 pt-8 border-t border-black/5 dark:border-white/5">
-            <div class="flex flex-col items-center gap-4">
-                <button onclick="document.body.classList.toggle('dark-mode')" class="label-text bg-white/50 dark:bg-slate-800 px-4 py-2 rounded-full shadow-sm hover:scale-105 transition">
-                    Changer de thème 🌗
-                </button>
-                <div class="text-center">
-                    <p class="text-[10px] font-bold tracking-widest uppercase opacity-40">Système Domotique X-Remote</p>
-                    <p class="text-[9px] opacity-30 mt-1">Connecté via Tuya Cloud API v2.0</p>
-                </div>
-            </div>
+        <footer class="max-w-md mx-auto mt-12 pt-8 border-t border-black/5 dark:border-white/5 text-center">
+            <button onclick="document.body.classList.toggle('dark-mode')" class="label-text bg-white/50 dark:bg-slate-800 px-4 py-2 rounded-full shadow-sm mb-4">
+                Changer thème 🌗
+            </button>
+            <p class="text-[10px] font-bold tracking-widest uppercase opacity-40">Système Domotique X-Remote</p>
         </footer>
     </div>
 
     <script>
         let devicesCache = [];
         let pickers = {};
-        // [x] Mémoire d'état : Stockage des modes (white/colour)
         let deviceStates = {};
 
         window.onload = () => {
-            // [x] Thème Adaptatif : Basculement après 20h
             const hour = new Date().getHours();
             if(hour >= 20 || hour < 7) document.body.classList.add('dark-mode');
             loadDevices();
@@ -122,6 +113,9 @@
 
         async function api(body) {
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000); // Timeout 8s
+
                 const res = await fetch('/api/control', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -129,28 +123,31 @@
                         ...body, 
                         accessId: localStorage.getItem('tuya_id'), 
                         accessSecret: localStorage.getItem('tuya_secret') 
-                    })
+                    }),
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
                 return await res.json();
-            } catch (e) { return { success: false }; }
+            } catch (e) { 
+                console.error("API Error:", e);
+                return { success: false }; 
+            }
         }
 
         async function loadDevices() {
             const res = await api({ action: 'listDevices' });
             if(res.success) {
-                // [x] Tri automatique (Online en haut) + [x] Tri Alphabétique
                 devicesCache = res.result.sort((a, b) => {
                     if (a.online !== b.online) return a.online ? -1 : 1;
                     return a.name.localeCompare(b.name);
                 });
                 document.getElementById('container').innerHTML = devicesCache.map(d => render(d)).join('');
-                // Synchronisation des états pour chaque appareil
+                // On synchronise chaque appareil
                 devicesCache.forEach(d => { if(d.online) syncStatus(d.id); });
             }
         }
 
         function render(d) {
-            // [x] Gestion Hybride : On détecte si c'est une lumière
             const isLight = d.category === 'dj' || d.category === 'dd' || d.name.toLowerCase().includes('lum');
             return `
             <div class="glass p-8 ${!d.online ? 'card-offline' : ''}" id="card-${d.id}">
@@ -158,7 +155,7 @@
                     <div>
                         <h3 class="font-black text-xl leading-none">${d.name}</h3>
                         <div class="mt-3 flex items-center gap-2">
-                            <span id="badge-${d.id}" class="text-[9px] font-black px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 uppercase transition-colors italic">Chargement...</span>
+                            <span id="badge-${d.id}" class="text-[9px] font-black px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 uppercase">Chargement...</span>
                             <span class="text-[8px] opacity-40 uppercase font-bold">${d.online ? 'Connecté' : 'Hors-ligne'}</span>
                         </div>
                     </div>
@@ -189,9 +186,11 @@
 
         async function syncStatus(id) {
             const res = await api({ action: 'getStatus', deviceId: id });
+            const badge = document.getElementById(`badge-${id}`);
+            const checkbox = document.getElementById(`sw-${id}`);
+
             if(res.success && res.result) {
                 const s = res.result;
-                // [x] Mémoire d'état
                 deviceStates[id] = {
                     work_mode: s.find(x => x.code === 'work_mode')?.value || 'white',
                     colour_data_v2: s.find(x => x.code === 'colour_data_v2')?.value
@@ -199,9 +198,7 @@
 
                 const sw = s.find(x => x.code === 'switch_led' || x.code === 'switch_1');
                 if(sw) {
-                    // Correction cohérence badge/bouton
-                    const checkbox = document.getElementById(`sw-${id}`);
-                    if(checkbox) checkbox.checked = sw.value;
+                    checkbox.checked = sw.value;
                     updateVisual(id, sw.value);
                 }
 
@@ -210,6 +207,12 @@
                 
                 const tp = s.find(x => x.code === 'temp_value_v2')?.value;
                 if(tp && document.getElementById(`tp-${id}`)) document.getElementById(`tp-${id}`).value = tp;
+            } else {
+                // Si l'API échoue, on ne laisse pas "Chargement"
+                if(badge) {
+                    badge.innerText = "○ Indisponible";
+                    badge.className = "text-[9px] font-black px-2 py-1 rounded bg-red-100 text-red-400 uppercase";
+                }
             }
         }
 
@@ -229,26 +232,15 @@
             }
         }
 
-        // [x] Intensité sans changement de couleur
         async function changeBrightness(id, val) {
             const state = deviceStates[id];
             const intVal = parseInt(val);
             if (state && state.work_mode === 'colour' && state.colour_data_v2) {
                 const c = typeof state.colour_data_v2 === 'string' ? JSON.parse(state.colour_data_v2) : state.colour_data_v2;
-                const newData = { h: c.h, s: c.s, v: intVal };
-                await sendCmd(id, 'colour_data_v2', newData);
-                deviceStates[id].colour_data_v2 = newData;
+                await sendCmd(id, 'colour_data_v2', { h: c.h, s: c.s, v: intVal });
             } else {
                 await sendCmd(id, 'bright_value_v2', intVal);
             }
-        }
-
-        async function setWhiteMode(id) {
-            await sendCmd(id, 'work_mode', 'white');
-            if(deviceStates[id]) deviceStates[id].work_mode = 'white';
-            const br = document.getElementById(`br-${id}`).value;
-            await sendCmd(id, 'bright_value_v2', parseInt(br));
-            document.getElementById(`pk-${id}`).classList.add('hidden');
         }
 
         async function universalToggle(id, state) {
@@ -271,12 +263,16 @@
                     const data = { h: Math.round(c.hsv.h), s: Math.round(c.hsv.s * 10), v: Math.round(c.hsv.v * 10) };
                     await sendCmd(id, 'work_mode', 'colour');
                     await sendCmd(id, 'colour_data_v2', data);
-                    if(deviceStates[id]) {
-                        deviceStates[id].work_mode = 'colour';
-                        deviceStates[id].colour_data_v2 = data;
-                    }
+                    deviceStates[id].work_mode = 'colour';
+                    deviceStates[id].colour_data_v2 = data;
                 });
             }
+        }
+
+        async function setWhiteMode(id) {
+            await sendCmd(id, 'work_mode', 'white');
+            deviceStates[id].work_mode = 'white';
+            sendCmd(id, 'bright_value_v2', parseInt(document.getElementById(`br-${id}`).value));
         }
 
         async function masterOff() {
@@ -291,8 +287,7 @@
                 devicesCache.forEach(d => {
                     if(d.online) {
                         universalToggle(d.id, false);
-                        const chk = document.getElementById(`sw-${d.id}`);
-                        if(chk) chk.checked = false;
+                        document.getElementById(`sw-${d.id}`).checked = false;
                     }
                 });
             }
